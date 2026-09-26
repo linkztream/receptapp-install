@@ -65,8 +65,12 @@ kryssen **Blockera "kan innehålla"** och **Blockera "troligen" (t.ex. kryddblan
 de går att slå på eller av oavsett nivå. På receptsidan står allergenerna under
 **Allergener**, uppdelade i **Innehåller**, **Troligen** och **Kan innehålla spår av**.
 
-**Ogillar** är för det som inte är allergi: recept med de ingredienserna undviks, men bara
-om ingrediensen inte är markerad som valfri.
+Rader som är märkta **valfria** räknas inte som allergener: en valfri vitlöksklyfta hindrar
+inte att receptet planeras för den vitlöksintoleranta. Receptsidan påminner ändå, dämpat:
+**Valfria ingredienser: … (kan utelämnas)**.
+
+**Ogillar** är för det som inte är allergi: recept med de ingredienserna undviks – men det är
+ett avdrag, inte ett förbud, och valfria rader räknas inte.
 
 Planeraren kan också byta ut en enskild ingrediens i stället för att kasta hela receptet.
 Ser du raden **Planeraren byter automatiskt till … när … äter** kan du trycka **Gör till
@@ -96,10 +100,11 @@ om hushållet har slagit på zonpolicyn är den **det enda sättet att logga in 
 hemnätet**.
 
 - **Registrera hemma:** **Inställningar → Passkeys → Lägg till passkey**, lås upp med
-  finger eller ansikte och ge nyckeln ett namn ("Min iPhone"). Registrering sker bara
-  hemifrån. Gör det *innan* någon reser bort.
+  finger eller ansikte och ge nyckeln ett namn ("Min iPhone"). Har hushållet slagit på
+  zonpolicyn går registrering **bara hemifrån** (*Passkeys registreras bara hemma i
+  nätet.*); innan den slås på går det var som helst. Gör det *innan* någon reser bort.
 - **Logga in:** tryck **Logga in med passkey** på inloggningssidan. Inget användarnamn
-  behövs – nyckeln vet vilket konto den hör till.
+  behövs – nyckeln vet vilket konto den hör till. Inloggningen håller i 30 dagar.
 - Står det **synkad** säkerhetskopieras nyckeln av din lösenordshanterare och finns även på
   dina andra enheter.
 - **Tappad telefon:** ta bort dess passkey under **Inställningar → Passkeys → Ta bort**
@@ -147,8 +152,10 @@ om alla mängder. Recept som alltid görs i sin helhet (en form, en plåt) visar
   var och en vill ha – **inköpslistan köper bara det någon valt, och näringen räknas på
   din egen tallrik**. Appen visar **Med dina val: +{kcal} kcal**.
 - **Betyg**: sätt **Ditt betyg** och gärna en **Kommentar**. Under **Betyg per profil**
-  sätter du betyg för barn utan konto. **Låga betyg gör att receptet väljs bort i
-  veckoplanen.**
+  sätter du betyg för barn utan konto – betygen hör till profilen, inte till kontot.
+  **Låga betyg gör att receptet väljs bort i veckoplanen**: har någon av de som äter satt
+  två stjärnor eller lägre (hushållets **Lägsta betyg i veckoplanen**) väljs rätten aldrig
+  automatiskt. Höga betyg väger tungt åt andra hållet.
 - **Näring per portion** räknas från de länkade ingredienserna (tillagningsförlust
   ignoreras). Står det **Ofullständig ({n} %)** saknas data för några rader; under 50 %
   täckning visas inga makron.
@@ -157,6 +164,9 @@ om alla mängder. Recept som alltid görs i sin helhet (en form, en plåt) visar
 
 **Varianter:** **Gör till variant av …** lägger receptet i samma grupp som ett annat
 (båda behåller sina egna ingredienser, steg och betyg). **Bryt ut ur gruppen** ångrar det.
+I receptlistan syns gruppen som ett kort, och planeraren räknar variationen på gruppen:
+den provar hellre en variant ingen ätit än samma som förra veckan, och väljer annars den
+som de som äter gillar bäst.
 
 **Arkivera** tar bort receptet ur listor och planering men sparar det: *Receptet försvinner
 ur listor och planering men kan återställas av admin.* En admin kan **Återställ** eller
@@ -202,17 +212,23 @@ inte att ångra).
 **Importera** har fyra flikar: **Länk**, **Fil**, **Foto** och **Text**. Allt utom **Länk**
 kräver att hushållet har lagt in en Claude-nyckel (se [Admin](#9-admin)).
 
-- **Länk:** klistra in adressen. Sidor med standarddata (schema.org) läses direkt och
-  gratis. Engelska recept översätts till svenska, och amerikanska cup-mått räknas om till
-  dl och gram.
+- **Länk:** klistra in adressen. De flesta svenska receptsajter har standarddata
+  (schema.org) och läses då direkt, utan att någon AI behöver blandas in. Recept på engelska
+  översätts till svenska (hushållet kan stänga av det).
+  Amerikanska mått räknas om, men **volym förblir volym och vikt förblir vikt**: 1 cup blir
+  2,4 dl, tbsp blir msk, tsp blir tsk – bara oz och lb blir gram. Anger källan både volym
+  och vikt ("1 cup (245 g)") vinner vikten, och volymen flyttas till noteringen. Grader
+  Fahrenheit blir Celsius.
 - **Text:** klistra in **Ingredienser och tillvägagångssätt…** – ren text eller Markdown.
 - **Foto:** **Ta foto** eller **Välj från bilder**. *Fotografera receptet eller välj
   sparade bilder – flera bilder blir ett recept i ordning.* Har du glömt baksidan: använd
   **Lägg till fler bilder** och kör om, eller **Komplettera** senare från receptsidan.
 - **Fil:** txt, md, **pdf** eller docx, max 40 MB. För långa PDF:er finns **Sidintervall
   (valfritt)** – skriv "3-5". Skannade PDF:er tar längre tid.
-- **Video:** klistra in en länk från YouTube, TikTok eller Instagram under **Länk**. Appen
-  läser beskrivningen och undertexterna.
+- **Video:** klistra in en länk från YouTube eller TikTok under **Länk**. Appen läser
+  beskrivningen och, för YouTube, undertexterna (svenska före engelska). Instagram släpper
+  inte in servrar: där får du ta en skärmdump av bildtexten och använda **Foto**, eller
+  klistra in texten – appen säger till och erbjuder båda vägarna.
 - **Från telefonen:** dela en länk, en text eller bilder till ReceptApp i mobilens
   delningsmeny – importsidan öppnas med rätt flik ifylld. (Kräver Android och installerad
   app; iOS saknar stöd för delningsmål.)
@@ -252,7 +268,9 @@ som handlas och vilka allergier som gäller just den måltiden.
 **Generera vecka** öppnar **Generera veckoplan**:
 
 - **Behåll befintliga rätter (fyll bara tomma)** rör inte det du redan valt.
-- **Planera från och med** planerar resten av veckan. **Passerade måltider lämnas orörda.**
+- **Planera från och med** planerar resten av veckan. **Passerade måltider lämnas orörda** –
+  en lucka räknas som passerad efter frukost 10, lunch 14 och middag 20, och är då märkt
+  **Passerad**. Mellanmål passerar aldrig.
 
 *Planeraren väljer recept utifrån deltagarnas allergier, kost, ogillanden, kalori- och
 proteinmål och undviker upprepningar.* Mer i detalj:
@@ -267,9 +285,16 @@ proteinmål och undviker upprepningar.* Mer i detalj:
   det inte blir kyckling i ugn tre dagar i rad.
 - Mål: kalorierna fördelas per måltid och rätter som spräcker kolhydrattaket får
   minuspoäng. Har du redan ätit i dag räknar planeraren på vad som är **kvar** av dagen.
-- Recept med taggen **högtid** läggs aldrig in automatiskt.
+- Samma rätt kommer inte två gånger samma vecka. Räcker inte recepten till säger appen
+  **Få recept passar – vissa rätter återkommer** och tar då de rätter som använts minst.
+- Tillbehör, såser, efterrätter och drycker hamnar inte som huvudrätt (men gärna som
+  mellanmål).
+- Recept med taggen **högtid** läggs aldrig in automatiskt – lutfisk dyker inte upp en varm
+  tisdag i augusti. Den ligger kvar i väljaren när du vill ha den.
 - **Tillbehör** som någon gjort till favorit läggs till automatiskt, var och en till sina
-  portioner.
+  portioner: har Peter potatismos och Maria ris blir det en portion av varje.
+- Vinnaren dras bland de fem bäst passande, så två körningar av samma vecka blir inte
+  identiska. Behöver dagen inget mellanmål säger appen **Inget mellanmål behövs**.
 
 Finns det för få recept säger appen **Importera fler recept**, och utan profiler **Skapa
 minst en profil innan du planerar.**
@@ -295,8 +320,13 @@ Tryck på ett kort för **Åtgärder**:
   "Restaurang", "Ute hos mormor".
 - Kort kan dras till en annan dag (**Dra receptet till en annan dag**).
 
-Lagar du dubbelt blir resten en egen måltid: kort märkta **Rester av …**. Recept med fast
-utbyte skalas inte – hela formen lagas, och portionerna räcker till det de räcker till.
+Blir det mat kvar planeras den som **Rester av …** – alltid från en middag till
+**nästa dags lunch**, och bara om receptet håller så länge och lunchens deltagare är samma
+personer (eller färre) som åt middagen. Rester läggs aldrig i en passerad lucka.
+
+Recept med **fast utbyte** skalas inte: hela formen eller plåten lagas, inköpslistan köper
+satsen en gång, och det som blir över fördelas på följande luncher så länge receptet
+håller.
 
 ### Näringsstaplarna
 
@@ -306,6 +336,10 @@ utbyte skalas inte – hela formen lagas, och portionerna räcker till det de r�
   Strecket = målet. Punkt = dagen är inte loggad.**
 - **Stapel = kcal mot dagsmål. Färgen på överkanten: grön inom ±10 %, gul under, röd över.
   ▲ = över kolhydratmax.**
+
+Bara den tunna överkanten är dömande – färgerna i stapeln är alltid makrofördelningen.
+Saknar profilen mål ritas inget streck, och en dag som gått utan att loggas visas dämpad
+med en punkt under: planen är då en gissning, och appen visar den som en sådan.
 
 Kortet **Planerat men inte loggat** har knappen **Åt detta** som loggar måltiden i
 dagboken med ett tryck. **Skapa inköpslista** gör listan för veckan.
@@ -323,7 +357,9 @@ dagboken med ett tryck. **Skapa inköpslista** gör listan för veckan.
   avrundas till något man kan handla.
 - **Finns hemma** och **avdraget från skafferiet** visas på rader som skafferiet täcker
   helt eller delvis.
-- **varför?** på en rad visar **Behövs till** – vilka recept som kräver den.
+- **varför?** på en rad visar **Behövs till** – vilka recept som kräver den, med mängd, och
+  vilka tillbehör den hör till. Har ni skannat varan tidigare står det också dämpat
+  **brukar köpa: …** med en liten bild, så det blir rätt sort i butiken.
 - Kryddor och sånt som "salt efter smak" får ingen inköpsmängd; står det redan en mätt
   mängd på raden läggs bara **+ efter smak** till. Basvaror (salt, peppar, olja) kan
   hoppas över helt med **Hoppa över basvaror (salt, peppar, olja…) i inköpslistan**.
@@ -370,9 +406,11 @@ inte igång kan du skriva **Skriv in EAN-kod** i stället.
 2. Står namnet på annat språk (**namn på annat språk**): skriv **Svenskt namn** – *namnet
    sparas för den här streckkoden*, så nästa skanning visar ert namn.
 3. Hittas varan inte: **Produkten är inte registrerad någonstans vi kan nå.** Då finns två
-   vägar – **Sök hos ICA** (bara administratörer, och bara om hushållet satt ett butiks-id)
-   eller **Ange själv** med **Namn på varan** och **Ingrediens**. *Nästa skanning går direkt
-   till skafferiet.*
+   vägar – **Sök hos ICA** (kräver att hushållet satt ett butiks-id, och att hämta in
+   produkten därifrån är en admin-sak: *Bara administratörer kan hämta produkter från ICA.
+   Ange varan själv i stället.*) eller **Ange själv** med **Namn på varan** och
+   **Ingrediens**. *Nästa skanning går direkt till skafferiet.* Streckkoder ICA inte känner
+   igen på EAN är vanliga, så **Ange själv** är den snabba vägen.
 4. **Lägg i skafferiet** med **Mängd**, **Enhet**, **Plats** och **Bäst före**. Eller
    **Slut – lägg på inköpslistan** om det var sista paketet.
 
@@ -440,9 +478,10 @@ PDF**. Sidan är inte sökbar på Google och innehåller inget annat än det rec
 
 Har mottagaren en egen ReceptApp klistrar hen in länken under **Importera → Länk** –
 *Mottagaren klistrar in länken under Importera → Länk i sin egen ReceptApp.* Då följer
-ingredienser, grupper, steg, anteckningar och näringsvärden med exakt, utan att någon AI
-behöver läsa sidan. Har hen appen installerad fungerar även **Öppna i min ReceptApp** på
-delningssidan.
+ingredienser, grupper, steg, anteckningar, näringsvärden och fast utbyte med exakt, utan
+att någon AI behöver läsa sidan. På delningssidan finns också **Öppna i min ReceptApp**,
+som frågar en gång efter adressen till den egna instansen och kommer ihåg den; har
+mottagaren appen installerad fungerar även länkar av typen `web+receptapp:`.
 
 ---
 
@@ -483,9 +522,12 @@ härifrån** när du sitter hemma, och varnar den inte om `X-Forwarded-For`, är
 inställt.
 
 **Server** (från version 1.13) samlar integrationerna på en egen sida: Claude-nyckeln för
-import från foto, PDF, Word och text, Home Assistant och ICA-butiken. I tidigare versioner
-sätts de i serverns `.env` – se [README.md](README.md). Utan Claude-nyckel fungerar import
-från länk, men inte från foto, PDF, Word eller inklistrad text.
+import från foto, PDF, Word och text, Home Assistant, ICA-butiken, uppdateringskollen och
+den automatiska backupen. Nycklar visas aldrig i klartext igen, bara som *satt, slutar på …*
+med en **Byt**-knapp. Står värdet redan i serverns `.env` är fältet låst och märkt *styrs av
+`.env`* – filen vinner alltid. Adress, databas och zoninställningar ändras bara där, med
+omstart; se [README.md](README.md). Utan Claude-nyckel fungerar import från länk, men inte
+från foto, PDF, Word eller inklistrad text.
 
 Övriga hushållsinställningar ligger under **Inställningar → Administration**:
 standardmåltider i veckoplanen, om importerade recept ska översättas till svenska, max
@@ -498,22 +540,33 @@ upprepningar**.
 
 **Varför visas vitlök som allergen?**
 Appen hanterar inte bara EU:s fjorton allergener utan också sånt hushåll faktiskt reagerar
-på – vitlök, lök, paprika, frukt. De ligger under **Övriga (frukt, grönsaker m.m.)** i
-profilen och fungerar precis som de andra: recept som innehåller dem filtreras bort för den
-profilen.
+på – vitlök, lök, frukt. De ligger under **Övriga (frukt, grönsaker m.m.)** i profilen och
+fungerar precis som de andra.
+
+Vitlök dyker också upp på egen hand, för att appen läser ingredienslistorna som de brukar se
+ut i butiken: currypasta, salsa, guacamole, tomatsås och falafel **innehåller** vitlök,
+buljong och fond kan innehålla **spår**, och kryddblandningar får **troligen**. Vill du att
+receptet ska väljas bort i alla de fallen behöver profilen nivån **Allvarlig** – på
+**Undvik** räknas bara de recept där vitlök faktiskt står i ingredienslistan.
 
 **Varför planeras aldrig min favoriträtt?**
 Fyra vanliga orsaker, i den ordningen:
 
-1. Någon av de som äter har en allergi eller ett **Ogillar** som receptet krockar med.
-2. Betyget är för lågt – under **Lägsta betyg i veckoplanen** väljs receptet aldrig
-   automatiskt.
-3. Den lagades nyligen. Variationsregeln straffar nylagat i ungefär så många dagar som
-   **Variation: dagar mellan upprepningar** säger.
-4. Receptet har taggen **högtid** och läggs bara in för hand.
+1. Någon av de som äter har en allergi, en kost eller ett **Ogillar** som receptet krockar
+   med.
+2. Betyget är för lågt: två stjärnor eller lägre från någon av dem som äter (**Lägsta betyg
+   i veckoplanen**) och rätten väljs aldrig automatiskt.
+3. Den lagades nyligen, eller ligger redan i veckan. Samma rätt kommer inte två gånger
+   samma vecka, och nylagat straffas i ungefär så många dagar som **Variation: dagar mellan
+   upprepningar** säger.
+4. Receptet har taggen **högtid** – då planeras det bara för hand.
+5. Det är taggat som tillbehör, sås, efterrätt eller dryck, och sånt hamnar inte som
+   huvudrätt.
+6. Det är en variant i en grupp, och en annan variant vinner.
 
 Är det inget av det: kolla att receptet inte är **Arkiverad**, och att tiden passar
-(**Max tillagningstid på vardagar**). Du kan alltid lägga in rätten själv på en tom lucka.
+(**Max tillagningstid på vardagar**). Du kan alltid lägga in rätten själv på en tom lucka –
+väljaren visar allt, även högtidsrätterna.
 
 **Hur byter jag lösenord eller passkey?**
 Lösenord: **Inställningar → Byt lösenord**. Passkey: **Inställningar → Passkeys → Lägg till

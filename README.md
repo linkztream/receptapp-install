@@ -242,9 +242,11 @@ Sedan, i den ordningen:
    gör det bekvämt – och det enda som släpps in utifrån om du senare stänger dörren med
    `AUTH_ZONES=enforce`.
 4. **Admin → Server** (från version 1.13) samlar integrationerna: Claude-nyckeln för
-   import från foto, PDF, Word och text, Home Assistant och ICA. Utan Claude-nyckel
-   fungerar import från länk, men inte från foto, PDF, Word eller inklistrad text.
-   Nyckeln kan också stå som `ANTHROPIC_API_KEY` i `.env`.
+   import från foto, PDF, Word och text, Home Assistant, ICA-butiken, uppdateringskollen och
+   den automatiska backupen. Utan Claude-nyckel fungerar import från länk, men inte från
+   foto, PDF, Word eller inklistrad text. Står värdet redan i `.env` (till exempel
+   `ANTHROPIC_API_KEY`) låser sidan fältet och visar *styrs av `.env`* – filen vinner alltid.
+   Adressen, databasen och zoninställningarna ändras bara i `.env`, med omstart.
 5. Livsmedelsverkets databas hämtas i bakgrunden första gången (cirka sex minuter) och
    uppdateras sedan månadsvis. Näringsvärden kan vara ofullständiga tills den är klar.
 
