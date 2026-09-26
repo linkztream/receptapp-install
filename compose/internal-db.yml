@@ -1,0 +1,47 @@
+# ReceptApp – docker compose med inbyggd MariaDB.
+#
+# install.sh fyller i versionen och porten du valde och skriver resultatet till
+# docker-compose.yml i installationskatalogen. Den filen får du redigera; update.sh rör
+# bara versionen på image-raden.
+#
+# Databasen har ingen publicerad port – den nås bara av appen, på det interna nätet som
+# compose skapar. Lösenorden står i .env (DB_ROOT_PASSWORD, DB_PASSWORD).
+
+services:
+  receptapp:
+    image: ghcr.io/linkztream/receptapp:__VERSION__
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Byt till "127.0.0.1:__PORT__:8080" om en reverse proxy på samma maskin är det enda
+      # som ska nå appen.
+      - "__PORT__:8080"
+    volumes:
+      # Måste vara skrivbar för uid 65532 (distroless nonroot). install.sh sätter ägaren.
+      - ./data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    # Hälsokollen ligger i imagen (HEALTHCHECK /receptapp -healthcheck). Distroless har
+    # varken curl eller skal, så någon egen test-rad går inte att skriva här.
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_swedish_ci
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD saknas i .env}
+      MARIADB_DATABASE: recept
+      MARIADB_USER: recept
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD saknas i .env}
+      # Kör mariadb-upgrade automatiskt när imagen byter major-version.
+      MARIADB_AUTO_UPGRADE: "1"
+      TZ: ${TZ:-Europe/Stockholm}
+    volumes:
+      - ./db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s

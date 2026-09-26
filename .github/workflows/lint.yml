@@ -1,0 +1,74 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shell:
+    name: skript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # POSIX syntax first: a broken script must never reach a household.
+      - name: sh -n
+        run: |
+          sh -n install.sh
+          sh -n update.sh
+
+      - name: shellcheck
+        run: |
+          docker run --rm -v "$PWD":/mnt -w /mnt koalaman/shellcheck:stable \
+            install.sh update.sh
+
+      - name: install.sh --help
+        run: sh install.sh --help
+
+  compose:
+    name: compose-mallar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The templates carry __VERSION__/__PORT__ placeholders and expect a .env next to
+      # them, exactly like an installed instance. Substitute dummies and let compose
+      # parse the result.
+      - name: docker compose config
+        run: |
+          set -eu
+          work="$(mktemp -d)"
+          cat >"$work/.env" <<'ENV'
+          DB_DSN=recept:dummy@tcp(db:3306)/recept?parseTime=true&charset=utf8mb4&collation=utf8mb4_swedish_ci&loc=UTC&multiStatements=true
+          SESSION_SECRET=0123456789abcdef0123456789abcdef
+          DB_ROOT_PASSWORD=dummy-root
+          DB_PASSWORD=dummy-app
+          PUBLIC_URL=http://recept.example.se:8090
+          TZ=Europe/Stockholm
+          ENV
+          for tpl in compose/*.yml; do
+            sed -e 's|__VERSION__|1.13.0|g' -e 's|__PORT__|8090|g' \
+              "$tpl" >"$work/docker-compose.yml"
+            (cd "$work" && docker compose config -q)
+            echo "ok: $tpl"
+          done
+
+      - name: latest.json är giltig JSON med version och url
+        run: |
+          set -eu
+          python3 -c "
+          import json, sys
+          d = json.load(open('latest.json'))
+          missing = [k for k in ('version', 'url') if not d.get(k)]
+          if missing:
+              sys.exit('latest.json saknar: ' + ', '.join(missing))
+          v = d['version']
+          if v.startswith('v') or len(v.split('.')) != 3:
+              sys.exit('version ska vara x.y.z utan v: ' + v)
+          img = d.get('image', '')
+          if img and not img.endswith(':' + v):
+              sys.exit('image pekar inte på version ' + v + ': ' + img)
+          print('latest.json ok:', v)
+          "

@@ -1,0 +1,31 @@
+# ReceptApp – docker compose mot en egen (extern) MariaDB.
+#
+# install.sh fyller i versionen och porten du valde och skriver resultatet till
+# docker-compose.yml i installationskatalogen. Den filen får du redigera; update.sh rör
+# bara versionen på image-raden.
+#
+# Databasen sköter du själv: den måste finnas, ha teckenuppsättning utf8mb4 med
+# utf8mb4_swedish_ci och en användare med alla rättigheter på just den databasen.
+# Anslutningen står som DB_DSN i .env.
+
+services:
+  receptapp:
+    image: ghcr.io/linkztream/receptapp:__VERSION__
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Byt till "127.0.0.1:__PORT__:8080" om en reverse proxy på samma maskin är det enda
+      # som ska nå appen.
+      - "__PORT__:8080"
+    volumes:
+      # Måste vara skrivbar för uid 65532 (distroless nonroot). install.sh sätter ägaren.
+      - ./data:/data
+    # Ligger databasen på samma maskin som Docker (och inte i en container) nås den inte
+    # som "localhost" härifrån – containern har sitt eget nät. Använd maskinens adress på
+    # LAN, eller lägg till:
+    #   extra_hosts:
+    #     - "host.docker.internal:host-gateway"
+    # och skriv host.docker.internal i DB_DSN.
+    #
+    # Hälsokollen ligger i imagen (HEALTHCHECK /receptapp -healthcheck). Distroless har
+    # varken curl eller skal, så någon egen test-rad går inte att skriva här.
