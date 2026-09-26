@@ -72,3 +72,42 @@ jobs:
               sys.exit('image pekar inte på version ' + v + ': ' + img)
           print('latest.json ok:', v)
           "
+
+  docs:
+    name: dokumentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # README.md and MANUAL.md link to each other and to their own headings. A broken
+      # anchor is invisible until a household clicks it.
+      - name: interna länkar och ankare
+        run: |
+          python3 - <<'PY'
+          import re, pathlib, sys
+
+          def slug(h):
+              s = h.strip().lower().replace('`', '')
+              s = re.sub(r'[^\w\s\-]', '', s, flags=re.UNICODE)
+              return s.replace(' ', '-')
+
+          files = {p.name: p.read_text() for p in pathlib.Path('.').glob('*.md')}
+          anchors = {n: {slug(m.group(2)) for m in re.finditer(r'(?m)^(#{1,6})\s+(.*)$', t)}
+                     for n, t in files.items()}
+          bad = []
+          for name, text in files.items():
+              for m in re.finditer(r'\[[^\]]+\]\(([^)]+)\)', text):
+                  target = m.group(1)
+                  if target.startswith(('http://', 'https://', 'mailto:')):
+                      continue
+                  file_part, _, anchor = target.partition('#')
+                  if file_part and file_part not in files:
+                      bad.append(f'{name}: {target} – filen finns inte')
+                      continue
+                  tgt = file_part or name
+                  if anchor and anchor not in anchors[tgt]:
+                      bad.append(f'{name}: {target} – ankaret finns inte i {tgt}')
+          if bad:
+              sys.exit('\n'.join(bad))
+          print('ok: alla interna länkar och ankare i', ', '.join(sorted(files)))
+          PY
