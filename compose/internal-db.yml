@@ -7,6 +7,12 @@
 # Databasen har ingen publicerad port – den nås bara av appen, på det interna nätet som
 # compose skapar. Lösenorden står i .env (DB_ROOT_PASSWORD, DB_PASSWORD).
 
+# Projektnamnet står här, inte i katalognamnet. Utan den här raden döper compose projektet
+# efter katalogen appen ligger i – och två kataloger som heter samma sak (en gammal klon,
+# en ny installation) blir då SAMMA projekt: 'docker compose up -d' i den ena skulle ta
+# över och starta om den andras containrar. Rör inte raden.
+name: __PROJECT__
+
 services:
   receptapp:
     image: ghcr.io/linkztream/receptapp:__VERSION__

@@ -24,11 +24,24 @@ cd "$(dirname "$0")"
 IMAGE="ghcr.io/linkztream/receptapp"
 LATEST_URL="${LATEST_URL:-https://raw.githubusercontent.com/linkztream/receptapp-install/main/latest.json}"
 SERVICE=receptapp
+COMPOSE=""
+PROJECT=""
 PORT="${PORT:-}"
 TARGET="${TARGET:-}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
 BACKUP=""
 RESTORE_FROM=""
+
+# dc kör docker compose mot just den här katalogens fil och projekt. Utan -f och -p skulle
+# compose kunna ta projektnamnet ur katalognamnet (eller ur COMPOSE_PROJECT_NAME i skalet)
+# och därmed röra en helt annan installations containrar.
+dc() {
+	if [ -n "$PROJECT" ]; then
+		docker compose -f "$COMPOSE" -p "$PROJECT" "$@"
+	else
+		docker compose -f "$COMPOSE" "$@"
+	fi
+}
 
 say() { printf '%s\n' "$*"; }
 warn() { printf 'VARNING: %s\n' "$*" >&2; }
@@ -68,6 +81,15 @@ if [ -z "$COMPOSE" ]; then
 	fail "Ingen docker-compose.yml i $(pwd). Är det här rätt katalog?"
 	exit 1
 fi
+# Projektnamnet ska stå i filen (name:). Saknas det faller compose tillbaka på
+# katalognamnet, och två kataloger med samma namn blir samma projekt.
+PROJECT="$(sed -n 's/^name:[[:space:]]*\([^[:space:]#]*\).*/\1/p' "$COMPOSE" | head -n 1)"
+if [ -z "$PROJECT" ]; then
+	warn "$COMPOSE saknar en 'name:'-rad, så projektnamnet kommer från katalogen"
+	warn "($(basename "$(pwd)")). Ligger en annan ReceptApp i en katalog med samma namn kan"
+	warn "de två dela containrar. Lägg till raden 'name: receptapp' högst upp i filen."
+fi
+
 if grep -qE '^[[:space:]]*build:' "$COMPOSE"; then
 	fail "$COMPOSE bygger appen ur källkoden (build:), och det här skriptet uppdaterar"
 	fail "en färdig image."
@@ -117,6 +139,7 @@ BEFORE="$(api_field version || true)"
 
 say "ReceptApp uppdatering"
 say "  katalog:           $(pwd)"
+say "  compose:           ${COMPOSE}${PROJECT:+ (projekt ${PROJECT})}"
 say "  nuvarande version: ${BEFORE}"
 say "  låst till:         ${IMAGE}:${CURRENT_TAG}"
 say "  adress:            ${BASE}"
@@ -149,9 +172,9 @@ say ""
 
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 BACKUP="pre-update-${STAMP}.zip"
-if docker compose ps --status running "$SERVICE" 2>/dev/null | grep -q "$SERVICE"; then
+if dc ps --status running "$SERVICE" 2>/dev/null | grep -q "$SERVICE"; then
 	say "Tar backup före uppdateringen …"
-	if docker compose exec -T "$SERVICE" /receptapp -export "/data/backups/${BACKUP}" \
+	if dc exec -T "$SERVICE" /receptapp -export "/data/backups/${BACKUP}" \
 		>/dev/null 2>&1; then
 		say "  backup: data/backups/${BACKUP}"
 	else
@@ -187,7 +210,7 @@ restore_compose() {
 # ---- 5. hämta och starta ----------------------------------------------------
 
 say "Hämtar ${IMAGE}:${TARGET} …"
-if ! docker compose pull; then
+if ! dc pull; then
 	fail "Kunde inte hämta imagen. Finns versionen ${TARGET}?"
 	say "Vilka versioner som finns står på ${LATEST_URL}."
 	restore_compose
@@ -196,9 +219,9 @@ fi
 say ""
 
 say "Startar om …"
-if ! docker compose up -d; then
+if ! dc up -d; then
 	fail "Starten misslyckades. De sista raderna ur loggen:"
-	docker compose logs --tail 40 >&2 || true
+	dc logs --tail 40 >&2 || true
 	say ""
 	say "Den gamla containern kan ha stoppats. 'docker compose up -d' startar den igen."
 	exit 2
@@ -218,7 +241,7 @@ while [ "$WAITED" -lt "$HEALTH_TIMEOUT" ]; do
 		fi
 	else
 		# Utan curl får hälsokollen i containern räcka.
-		if docker compose exec -T "$SERVICE" /receptapp -healthcheck >/dev/null 2>&1; then
+		if dc exec -T "$SERVICE" /receptapp -healthcheck >/dev/null 2>&1; then
 			HEALTHY=1
 			break
 		fi
@@ -231,7 +254,7 @@ printf '\n'
 
 if [ "$HEALTHY" -ne 1 ]; then
 	fail "Appen svarade inte inom ${HEALTH_TIMEOUT} sekunder. De sista raderna ur loggen:"
-	docker compose logs --tail 40 >&2 || true
+	dc logs --tail 40 >&2 || true
 	say ""
 	say "Containern är startad men osund. Kolla DB_DSN i .env och kör:"
 	say "  docker compose logs --tail 100"

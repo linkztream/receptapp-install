@@ -76,7 +76,10 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/linkztream/receptapp-insta
   --yes --dir /srv/receptapp --url https://recept.example.se --port 8090 --db internal
 ```
 
-`./install.sh --help` listar alla flaggor. Avslutskoder: `0` klart, `1` förutsättning
+`./install.sh --help` listar alla flaggor – utöver dem ovan finns `--project-name`
+(compose-projektets namn, standard `receptapp`), `--version`, `--anthropic-key`, `--tz`,
+`--reconfigure`, `--allow-root` och `--skip-start`. Skriptet vägrar starta om
+projektnamnet redan används av en annan installation på maskinen. Avslutskoder: `0` klart, `1` förutsättning
 saknas eller ett svar går inte att använda, `2` hämtningen eller starten misslyckades,
 `3` appen kom inte igång i tid.
 
@@ -89,6 +92,8 @@ följande i den.
 **`docker-compose.yml` med inbyggd databas** (rekommenderas):
 
 ```yaml
+name: receptapp
+
 services:
   receptapp:
     image: ghcr.io/linkztream/receptapp:1.13.0
@@ -128,6 +133,13 @@ services:
 Ingen hälsokoll behövs för appen: den ligger i imagen (`/receptapp -healthcheck`).
 Databasen har ingen publicerad port – bara appen når den.
 
+**Behåll `name:`-raden.** Utan den döper Docker Compose projektet efter katalogen filen
+ligger i, och då blir två kataloger som råkar heta samma sak (en gammal klon och en ny
+installation, båda `receptapp`) *samma* projekt: `docker compose up -d` i den ena stoppar
+och återskapar den andras containrar. Har du redan en instans som heter `receptapp`, sätt
+ett eget namn här – och i så fall också `--project-name` när du kör
+installationsskriptet.
+
 **`docker-compose.yml` mot en egen MariaDB** (≥ 10.6). Skapa databasen först:
 
 ```sql
@@ -137,6 +149,8 @@ GRANT ALL ON recept.* TO 'recept'@'%';
 ```
 
 ```yaml
+name: receptapp
+
 services:
   receptapp:
     image: ghcr.io/linkztream/receptapp:1.13.0
@@ -492,6 +506,11 @@ curl -s localhost:8090/healthz
 - **Appen blir aldrig frisk.** Nästan alltid databasen: kontrollera `DB_DSN` i `.env`.
   Loggen säger vad som gick fel. Samma rader finns under **Admin → Senaste loggrader** när
   appen kommit upp.
+- **"Compose-projektet receptapp är redan taget"**: något annat på maskinen använder samma
+  compose-projektnamn – oftast en äldre installation eller en gammal klon i en katalog som
+  också heter `receptapp`. Två projekt med samma namn delar containrar, så en start här
+  skulle stoppa och återskapa den andras. Kör om med ett eget namn
+  (`--project-name receptapp-2`), eller ta bort den gamla installationen först.
 - **Porten är upptagen** (`address already in use`): välj en annan port i
   `docker-compose.yml` och i `PUBLIC_URL`, eller stoppa det som redan lyssnar.
 - **Permission denied i loggen.** `data/` är inte skrivbar för uid 65532:

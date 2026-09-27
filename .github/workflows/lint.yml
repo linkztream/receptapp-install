@@ -50,7 +50,8 @@ jobs:
           ENV
           for tpl in compose/*.yml; do
             sed -e 's|__VERSION__|1.13.0|g' -e 's|__PORT__|8090|g' \
-              "$tpl" >"$work/docker-compose.yml"
+              -e 's|__PROJECT__|receptapp|g' "$tpl" >"$work/docker-compose.yml"
+            grep -q '^name: receptapp$' "$work/docker-compose.yml"
             (cd "$work" && docker compose config -q)
             echo "ok: $tpl"
           done

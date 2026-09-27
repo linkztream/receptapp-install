@@ -13,6 +13,8 @@
 #
 # Flaggor – alla frågor kan besvaras i förväg:
 #   --dir KATALOG          var appen ska installeras (standard ~/receptapp)
+#   --project-name NAMN    compose-projektets namn (standard receptapp). Byt bara om namnet
+#                          redan används av en annan installation på maskinen.
 #   --url ADRESS           PUBLIC_URL, appens adress utåt
 #   --port PORT            värdport (standard 8090)
 #   --db internal|external inbyggd MariaDB eller en egen
@@ -43,6 +45,7 @@ LATEST_JSON_URL="${LATEST_JSON_URL:-${REPO_RAW}/latest.json}"
 FALLBACK_VERSION="1.13.0"
 IMAGE="ghcr.io/linkztream/receptapp"
 DEFAULT_PORT=8090
+DEFAULT_PROJECT=receptapp
 DEFAULT_DB_NAME=recept
 DEFAULT_DB_USER=recept
 # Samma standard som appen: alla privata nät + loopback räknas som hemnätet.
@@ -53,6 +56,8 @@ HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
 # ---- svar och flaggor -------------------------------------------------------
 
 DIR=""
+PROJECT=""
+PROJECT_OPT=""
 PUBLIC_URL=""
 PORT=""
 DB_MODE=""
@@ -82,8 +87,12 @@ trap 'stty echo 2>/dev/null || true; [ -z "$WORKDIR" ] || rm -rf "$WORKDIR"' EXI
 trap 'printf "\nAvbrutet.\n" >&2; exit 1' INT
 
 usage() {
-	sed -n '2,34p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'
-	[ -f "$0" ] || say "Hjälpen finns i skriptets huvud: $REPO_RAW/install.sh"
+	# Print the comment header (line 2 up to the first non-comment line).
+	if [ -f "$0" ]; then
+		awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"
+	else
+		say "Hjälpen finns i skriptets huvud: $REPO_RAW/install.sh"
+	fi
 }
 
 need_value() {
@@ -97,6 +106,7 @@ need_value() {
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--dir) need_value "$1" $#; DIR="$2"; shift 2 ;;
+	--project-name) need_value "$1" $#; PROJECT_OPT="$2"; shift 2 ;;
 	--url) need_value "$1" $#; PUBLIC_URL="$2"; shift 2 ;;
 	--port) need_value "$1" $#; PORT="$2"; shift 2 ;;
 	--db) need_value "$1" $#; DB_MODE="$2"; shift 2 ;;
@@ -193,6 +203,62 @@ is_number() {
 is_port() {
 	is_number "$1" || return 1
 	[ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+# compose_project_config SKRIVER UT konfigurationsfilen som docker compose redan känner
+# till för projektet $1, eller inget om projektet är okänt. "N/A" och relativa sökvägar
+# skrivs ut som de är – anroparen får avgöra att de inte går att jämföra.
+compose_project_config() {
+	# docker compose ls -a listar även stoppade projekt. Varningar på stderr ignoreras.
+	docker compose ls -a --format json 2>/dev/null |
+		tr '}' '\n' |
+		grep -E "\"Name\"[[:space:]]*:[[:space:]]*\"$1\"" |
+		sed -n 's/.*"ConfigFiles"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
+		head -n 1 |
+		cut -d, -f1
+}
+
+# project_containers SKRIVER UT containrar som ser ut att tillhöra projektet $1, för det
+# fall compose ls inte känner till projektet (containrar utan compose-etiketter).
+project_containers() {
+	{
+		docker ps -a --filter "name=^/$1-" --format '{{.Names}}' 2>/dev/null || true
+		docker ps -a --filter "label=com.docker.compose.project=$1" \
+			--format '{{.Names}}' 2>/dev/null || true
+	} | sort -u
+}
+
+# project_conflict SVARAR 0 när namnet $1 redan är taget av något annat än vår egen
+# katalog. Förklaringen hamnar i CONFLICT_WHY.
+CONFLICT_WHY=""
+project_conflict() {
+	CONFLICT_WHY=""
+	conflict_cfg="$(compose_project_config "$1")"
+	if [ -n "$conflict_cfg" ]; then
+		case "$conflict_cfg" in
+		"${DIR}/docker-compose.yml")
+			# Det är vår egen installation.
+			return 1
+			;;
+		/*)
+			CONFLICT_WHY="projektet kör redan från $(dirname "$conflict_cfg")"
+			return 0
+			;;
+		*)
+			# "N/A" eller en relativ sökväg: går inte att jämföra, så vi vågar inte.
+			CONFLICT_WHY="projektet finns redan (compose vet inte var: \"$conflict_cfg\")"
+			return 0
+			;;
+		esac
+	fi
+	# Okänt för compose ls. Finns det ändå containrar med projektets namn tillhör de någon
+	# annan – utom när vi redan äger katalogen (--reconfigure av en befintlig installation).
+	conflict_ps="$(project_containers "$1")"
+	if [ -n "$conflict_ps" ] && [ ! -f "${DIR}/docker-compose.yml" ]; then
+		CONFLICT_WHY="containrar med det namnet finns redan: $(printf '%s' "$conflict_ps" | tr '\n' ' ')"
+		return 0
+	fi
+	return 1
 }
 
 fetch() {
@@ -294,6 +360,47 @@ if [ -f .env ] && [ "$RECONFIGURE" -eq 0 ]; then
 	say "Vill du svara på frågorna igen: lägg till --reconfigure (gamla .env sparas)."
 	exit 1
 fi
+
+# ---- 2b. compose-projektets namn --------------------------------------------
+#
+# Projektnamnet skrivs in i docker-compose.yml (name:) så att det inte beror på vad
+# katalogen heter. Annars skulle 'docker compose up -d' här kunna ta över containrarna för
+# en annan installation som ligger i en katalog med samma namn.
+
+if [ -n "$PROJECT_OPT" ]; then
+	PROJECT="$PROJECT_OPT"
+elif [ "$RECONFIGURE" -eq 1 ] && [ -f docker-compose.yml ]; then
+	# Behåll namnet installationen redan har, annars blir de gamla containrarna orphans.
+	PROJECT="$(sed -n 's/^name:[[:space:]]*\([^[:space:]#]*\).*/\1/p' docker-compose.yml |
+		head -n 1)"
+	[ -z "$PROJECT" ] || say "Behåller projektnamnet ${PROJECT} ur den befintliga docker-compose.yml."
+fi
+[ -n "$PROJECT" ] || PROJECT="$DEFAULT_PROJECT"
+case "$PROJECT" in
+'' | *[!a-z0-9_-]*)
+	fail "Projektnamnet \"$PROJECT\" går inte att använda."
+	say "Compose tillåter små bokstäver, siffror, bindestreck och understreck."
+	exit 1
+	;;
+esac
+
+while project_conflict "$PROJECT"; do
+	fail "Compose-projektet \"$PROJECT\" är redan taget: ${CONFLICT_WHY}."
+	say "Två installationer med samma projektnamn delar containrar – en start här skulle"
+	say "stoppa och återskapa den andras. Välj ett annat namn."
+	if [ "$ASSUME_YES" -eq 1 ]; then
+		say "Kör om med ett eget namn, till exempel:"
+		say "  --project-name ${PROJECT}-2"
+		exit 1
+	fi
+	PROJECT="$(ask "Projektnamn" "${PROJECT}-2")"
+	case "$PROJECT" in
+	'' | *[!a-z0-9_-]*)
+		fail "Bara små bokstäver, siffror, bindestreck och understreck."
+		exit 1
+		;;
+	esac
+done
 
 # ---- 3. frågor --------------------------------------------------------------
 
@@ -490,6 +597,7 @@ fi
 say ""
 say "Så här blir det:"
 say "  katalog:   $DIR"
+say "  projekt:   $PROJECT (compose-projektets namn)"
 say "  adress:    $PUBLIC_URL"
 say "  port:      ${PORT} → 8080 i containern"
 if [ "$DB_MODE" = internal ]; then
@@ -647,12 +755,18 @@ if [ -f docker-compose.yml ]; then
 	cp docker-compose.yml "docker-compose.yml.bak-$(date -u +%Y%m%d-%H%M%S)"
 fi
 sed -e "s|__VERSION__|${VERSION}|g" -e "s|__PORT__|${PORT}|g" \
+	-e "s|__PROJECT__|${PROJECT}|g" \
 	"${WORKDIR}/compose.yml" >docker-compose.yml
-if grep -q '__VERSION__\|__PORT__' docker-compose.yml; then
+if ! grep -q "^name:[[:space:]]*${PROJECT}\$" docker-compose.yml; then
+	fail "Mallen saknar raden 'name: ${PROJECT}' – utan den skulle projektnamnet komma från"
+	fail "katalognamnet, och en annan installation kunna tas över."
+	exit 2
+fi
+if grep -q '__VERSION__\|__PORT__\|__PROJECT__' docker-compose.yml; then
 	fail "Mallen innehöll platshållare som inte gick att ersätta."
 	exit 2
 fi
-say "Skrev docker-compose.yml (${IMAGE}:${VERSION}, port ${PORT})."
+say "Skrev docker-compose.yml (${IMAGE}:${VERSION}, port ${PORT}, projekt ${PROJECT})."
 
 if fetch update.sh >"${WORKDIR}/update.sh"; then
 	# En tom eller trasig hämtning får inte skriva över ett fungerande update.sh.
@@ -676,9 +790,15 @@ fi
 
 # ---- 9. hämta och starta ----------------------------------------------------
 
+# dc kör docker compose mot filen och projektet vi just skrev – aldrig via katalognamnet
+# eller ett COMPOSE_PROJECT_NAME som råkar ligga i skalet.
+dc() {
+	docker compose -f docker-compose.yml -p "$PROJECT" "$@"
+}
+
 say ""
 say "Hämtar imagen (${IMAGE}:${VERSION}) …"
-if ! docker compose pull; then
+if ! dc pull; then
 	fail "Kunde inte hämta imagen."
 	say "Vanliga orsaker: ingen nätåtkomst, eller att versionen ${VERSION} inte finns."
 	say "Vilka versioner som finns står på ${LATEST_JSON_URL}."
@@ -688,9 +808,9 @@ fi
 
 say ""
 say "Startar …"
-if ! docker compose up -d; then
+if ! dc up -d; then
 	fail "Starten misslyckades. De sista raderna ur loggen:"
-	docker compose logs --tail 40 >&2 || true
+	dc logs --tail 40 >&2 || true
 	exit 2
 fi
 
@@ -712,7 +832,7 @@ printf '\n'
 
 if [ "$HEALTHY" -ne 1 ]; then
 	fail "Appen svarade inte inom ${HEALTH_TIMEOUT} sekunder. De sista raderna ur loggen:"
-	docker compose logs --tail 40 >&2 || true
+	dc logs --tail 40 >&2 || true
 	say ""
 	say "Filerna ligger kvar i $DIR. Kontrollera DB_DSN i .env och följ loggen:"
 	say "  cd \"$DIR\" && docker compose logs -f"
@@ -729,6 +849,7 @@ say ""
 say "  Adress:        ${PUBLIC_URL}"
 say "  Lokalt:        http://127.0.0.1:${PORT}"
 say "  Katalog:       ${DIR}"
+say "  Compose:       projekt ${PROJECT} (står som name: i docker-compose.yml)"
 say "  Inställningar: ${DIR}/.env  (rättigheter 600 – här står lösenorden)"
 say "  Data:          ${DIR}/data  (media, uppladdningar, backuper, loggar)"
 if [ "$DB_MODE" = internal ]; then
