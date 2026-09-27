@@ -116,6 +116,8 @@ services:
     volumes:
       - ./db:/var/lib/mysql
     healthcheck:
+      # MariaDB-imagens egen hälsokontroll: servern svarar och lagringsmotorn (InnoDB) är
+      # färdigstartad. Appen väntar på den, annars körs migreringarna för tidigt.
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
