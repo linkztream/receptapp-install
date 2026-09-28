@@ -42,7 +42,7 @@ set -eu
 REPO_RAW="https://raw.githubusercontent.com/linkztream/receptapp-install/main"
 LATEST_JSON_URL="${LATEST_JSON_URL:-${REPO_RAW}/latest.json}"
 # Används bara om latest.json inte går att hämta.
-FALLBACK_VERSION="1.13.0"
+FALLBACK_VERSION=1.13.1
 IMAGE="ghcr.io/linkztream/receptapp"
 DEFAULT_PORT=8090
 DEFAULT_PROJECT=receptapp
