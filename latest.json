@@ -2,5 +2,5 @@
   "version": "1.19.0",
   "url": "https://github.com/linkztream/receptapp-install/releases",
   "image": "ghcr.io/linkztream/receptapp:1.19.0",
-  "notes": "Distribution via GHCR: multi-arch image (amd64/arm64), installationsskript, väntar på databasen vid start."
+  "notes": "Teman: fyra paletter och eget tema med ljust/mörkt läge per användare. Hushållets tema under Admin → Systemet → Utseende."
 }
