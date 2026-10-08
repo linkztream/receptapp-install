@@ -115,6 +115,20 @@ hemnätet**.
 
 ---
 
+### Utseende
+
+Under **Inställningar → Utseende** väljer du **Läge** – **System** (följer telefonens eller
+datorns inställning), **Ljust** eller **Mörkt** – och **Tema**. Valet sparas på ditt konto
+och följer med till alla dina enheter.
+
+Temat är **Som hushållet** tills du väljer något annat. De färdiga paletterna är **Skog**
+(appens klassiska gröna), **Hav**, **Bär** och **Grafit**. Väljer du **Egen** sätter du
+**Primärfärg** och **Accentfärg** själv och en **Neutral ton** (**Varm**, **Kall** eller
+**Grå**); resten räknas fram så att text alltid går att läsa, i både ljust och mörkt läge.
+Färgerna i näringsringen och profilernas avatarer följer inte temat – de betyder något.
+
+---
+
 ## 2. Recept
 
 ### Bläddra, söka och filtrera
@@ -495,7 +509,9 @@ Administratörer har en egen meny: **System**, **Användare**, **Ingredienser** 
 backup**) och **Claude-kostnad** per månad. Finns en ny version står det **En nyare version
 finns** med instruktionen att köra `./update.sh` på servern. Under **Appens namn** döper
 ni om instansen (1–40 tecken) – namnet slår igenom i menyn, i webbläsarfliken och på
-hemskärmen. Kortet **Home Assistant** har reglaget **Skicka inköpslistan till Home
+hemskärmen. Under **Utseende** väljer ni hushållets tema – det alla ser tills de väljer ett
+eget under **Inställningar → Utseende**; inloggningssidan och appikonens färg följer det.
+Kortet **Home Assistant** har reglaget **Skicka inköpslistan till Home
 Assistant** och en steg-för-steg-hjälp (**Så konfigurerar du Home Assistant**).
 
 **Användare** är konton som kan logga in – *en profil i hushållet behöver bara ett konto om

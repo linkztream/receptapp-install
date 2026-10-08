@@ -1,6 +1,6 @@
 {
-  "version": "1.18.0",
+  "version": "1.19.0",
   "url": "https://github.com/linkztream/receptapp-install/releases",
-  "image": "ghcr.io/linkztream/receptapp:1.18.0",
+  "image": "ghcr.io/linkztream/receptapp:1.19.0",
   "notes": "Distribution via GHCR: multi-arch image (amd64/arm64), installationsskript, väntar på databasen vid start."
 }
