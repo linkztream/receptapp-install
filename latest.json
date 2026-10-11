@@ -1,6 +1,6 @@
 {
-  "version": "1.19.1",
+  "version": "1.20.0",
   "url": "https://github.com/linkztream/receptapp-install/releases",
-  "image": "ghcr.io/linkztream/receptapp:1.19.1",
-  "notes": "Teman (fyra paletter och eget) och rättningar i inköpslistan på telefon."
+  "image": "ghcr.io/linkztream/receptapp:1.20.0",
+  "notes": "Inköpslistan: hoppa över rader som inte behövs, de kommer inte tillbaka vid omgenerering. Teman sedan 1.19."
 }

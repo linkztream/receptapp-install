@@ -384,7 +384,11 @@ dagboken med ett tryck. **Skapa inköpslista** gör listan för veckan.
   grupperas efter avdelning i butiken; ordningen sätter du själv under **Inställningar →
   Kategoriordning i inköpslistan** (*Ordna kategorierna som du går i butiken*).
 - I butiken bockar du av raderna. Avbockade hamnar under **Avbockade**, och överst står
-  hur mycket som är **kvar att handla** – till slut **Allt är handlat!**
+  hur mycket som är **kvar att handla** – till slut **Allt är handlat!** Bara rutan bockar
+  av; ett tryck på namnet öppnar **varför?**. En avbockning visar *… avbockad* med **Ångra**.
+- Behöver ni inte en vara den här veckan, tryck på **✕** på raden. En egen rad tas bort; en
+  rad från ett recept hamnar under **Hoppar över** och räknas inte som köpt, skickas inte
+  till Home Assistant och kommer inte tillbaka när listan genereras om. **Ta tillbaka** ångrar.
 
 **Offline:** listan fungerar utan nät. Då står **Offline – visar listan från …** och
 ändringar köas: **Ändringar väntar**, **väntar på synk**. De skickas av sig själva när
